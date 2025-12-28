@@ -7,7 +7,8 @@ READMEs without leaving your terminal.
 ## Features
 - Focus Den: Pomodoro timer, session logging, and stats.
 - Repo Forge: GitHub profile and project README generators.
-- Project Roost: Task system, deadlines, and daily standups.
+- Project Roost: Task system and deadlines.
+- DDC Web: Offline-first web app with Pomodoro, tasks, VS Code activity heatmap, GitHub viewer, and Git summary.
 
 ## Install (local)
 ```bash
@@ -56,14 +57,16 @@ ddc readme project --title "Dragon Tracker" --description "Track flight logs"
 ddc tasks add "Refactor focus timer" --due 2025-12-30
 ddc tasks list
 ddc tasks done 1
-
-ddc standup
 ```
 
 ## TUI
 ```bash
 ddc tui
 ```
+
+## DDC Web
+The web app lives in `ddc-desktop/` (FastAPI backend + React frontend).
+See `ddc-desktop/README.md` for setup and run instructions.
 
 ## Output Paths
 Generated files default to `out/` and must remain inside the project root.
@@ -72,7 +75,7 @@ Generated files default to `out/` and must remain inside the project root.
 ```
    / \  //\     Dragon Dev Companion
   ( o_o )        [Focus] [Tasks] [Forge]
-   > ^ <         Stats, tasks, and standup views
+   > ^ <         Stats, tasks, and forge views
 ```
 
 ## Roadmap

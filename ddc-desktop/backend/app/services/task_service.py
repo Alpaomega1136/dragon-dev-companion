@@ -1,11 +1,9 @@
-"""Task CRUD and standup summary."""
+"""Task CRUD helpers."""
 
 from __future__ import annotations
 
-from datetime import date
-
 from app.db import get_connection
-from app.utils.time_utils import now_iso, today_date
+from app.utils.time_utils import now_iso
 
 
 def _row_to_dict(row) -> dict:
@@ -95,37 +93,3 @@ def delete_task(task_id: int) -> dict:
         if cur.rowcount == 0:
             return {"error": "Task not found."}
     return {"message": "Task deleted."}
-
-
-def standup_today() -> dict:
-    today = today_date().isoformat()
-    with get_connection() as conn:
-        done_rows = conn.execute(
-            """
-            SELECT title FROM tasks
-            WHERE status = 'done' AND date(updated_at) = ?
-            ORDER BY updated_at DESC
-            """,
-            (today,),
-        ).fetchall()
-        active_rows = conn.execute(
-            """
-            SELECT title FROM tasks
-            WHERE status IN ('todo', 'doing')
-            ORDER BY due_date IS NULL, due_date, created_at
-            """
-        ).fetchall()
-        blocker_rows = conn.execute(
-            """
-            SELECT title FROM tasks
-            WHERE status = 'doing' AND due_date IS NOT NULL AND date(due_date) < ?
-            ORDER BY due_date
-            """,
-            (today,),
-        ).fetchall()
-
-    return {
-        "today_did": [row["title"] for row in done_rows],
-        "today_will_do": [row["title"] for row in active_rows],
-        "blockers": [row["title"] for row in blocker_rows],
-    }

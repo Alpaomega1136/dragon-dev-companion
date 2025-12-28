@@ -7,7 +7,7 @@ const DEFAULT_SETTINGS = {
   breakMinutes: 5
 };
 
-const TABS = ["Pomodoro", "Tasks", "Standup", "README", "Stats", "VS Code", "Settings", "Git"];
+const TABS = ["Pomodoro", "Tasks", "README", "VS Code", "GitHub", "Settings", "Git"];
 
 function loadSettings() {
   try {
@@ -55,7 +55,6 @@ export default function App() {
           ) : (
             <div className="badge offline">Offline</div>
           )}
-          <div className="muted">Base URL: {baseUrl}</div>
         </div>
       </header>
 
@@ -73,10 +72,9 @@ export default function App() {
 
       {tab === "Pomodoro" && <PomodoroPanel baseUrl={baseUrl} settings={settings} />}
       {tab === "Tasks" && <TasksPanel baseUrl={baseUrl} />}
-      {tab === "Standup" && <StandupPanel baseUrl={baseUrl} />}
       {tab === "README" && <ReadmePanel baseUrl={baseUrl} />}
-      {tab === "Stats" && <StatsPanel baseUrl={baseUrl} />}
       {tab === "VS Code" && <VscodePanel baseUrl={baseUrl} />}
+      {tab === "GitHub" && <GitHubPanel baseUrl={baseUrl} />}
       {tab === "Settings" && (
         <SettingsPanel
           settings={settings}
@@ -336,40 +334,6 @@ function TasksPanel({ baseUrl }) {
   );
 }
 
-function StandupPanel({ baseUrl }) {
-  const [text, setText] = useState("Memuat...");
-
-  const refresh = () => {
-    apiGet(baseUrl, "/standup/today").then((res) => {
-      if (!res.ok) {
-        setText("Gagal mengambil standup.");
-        return;
-      }
-      const data = res.data;
-      setText(
-        "Today I did:\n" +
-          formatList(data.today_did) +
-          "\n\nToday I will do:\n" +
-          formatList(data.today_will_do) +
-          "\n\nBlockers:\n" +
-          formatList(data.blockers)
-      );
-    });
-  };
-
-  useEffect(refresh, []);
-
-  return (
-    <div className="card">
-      <h3 className="section-title">Standup Hari Ini</h3>
-      <div className="actions">
-        <button onClick={refresh}>Generate</button>
-      </div>
-      <textarea rows="12" value={text} readOnly />
-    </div>
-  );
-}
-
 function ReadmePanel({ baseUrl }) {
   const [profile, setProfile] = useState({ name: "", bio: "", tech: "", links: "" });
   const [project, setProject] = useState({
@@ -453,37 +417,6 @@ function ReadmePanel({ baseUrl }) {
   );
 }
 
-function StatsPanel({ baseUrl }) {
-  const [stats, setStats] = useState({ today: "-", week: "-", all: "-" });
-
-  const fetchStats = async () => {
-    const today = await apiGet(baseUrl, "/pomodoro/stats?range=today");
-    const week = await apiGet(baseUrl, "/pomodoro/stats?range=week");
-    const all = await apiGet(baseUrl, "/pomodoro/stats?range=all");
-    setStats({
-      today: today.ok ? formatStat(today.data) : "error",
-      week: week.ok ? formatStat(week.data) : "error",
-      all: all.ok ? formatStat(all.data) : "error"
-    });
-  };
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  return (
-    <div className="card">
-      <h3 className="section-title">Focus Stats</h3>
-      <div className="grid">
-        <div>Today: {stats.today}</div>
-        <div>Last 7 days: {stats.week}</div>
-        <div>All time: {stats.all}</div>
-        <button onClick={fetchStats}>Refresh</button>
-      </div>
-    </div>
-  );
-}
-
 function SettingsPanel({ settings, onSave }) {
   const [form, setForm] = useState(settings);
   const [message, setMessage] = useState("");
@@ -521,6 +454,239 @@ function SettingsPanel({ settings, onSave }) {
         </div>
         <button className="primary" onClick={save}>Save</button>
         {message && <div className="muted">{message}</div>}
+      </div>
+    </div>
+  );
+}
+
+function GitHubPanel({ baseUrl }) {
+  const [summary, setSummary] = useState({
+    profile: null,
+    repos: [],
+    contributions: [],
+    available_years: [],
+    year: null,
+    message: ""
+  });
+  const [message, setMessage] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [savedGithubUrl, setSavedGithubUrl] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [githubYear, setGithubYear] = useState(new Date().getFullYear());
+
+  const refresh = () => {
+    apiGet(baseUrl, `/github/summary?year=${githubYear}`).then((res) => {
+      if (!res.ok) {
+        setMessage(res.message || "Failed to load GitHub data.");
+        return;
+      }
+      setSummary(res.data || { profile: null, repos: [], contributions: [] });
+      const available = res.data?.available_years || [];
+      const serverYear = res.data?.year;
+      if (serverYear && Number.isInteger(serverYear)) {
+        setGithubYear(serverYear);
+      } else if (available.length && !available.includes(githubYear)) {
+        setGithubYear(available[available.length - 1]);
+      }
+      setMessage("");
+    });
+  };
+
+  useEffect(() => {
+    const stored = localStorage.getItem("ddc_github_url") || "";
+    setGithubUrl(stored);
+    setSavedGithubUrl(stored);
+  }, []);
+
+  useEffect(refresh, [baseUrl, githubYear]);
+
+  const profile = summary.profile || {};
+  const repos = Array.isArray(summary.repos) ? summary.repos : [];
+  const contributions = Array.isArray(summary.contributions) ? summary.contributions : [];
+  const avatarUrl = profile.avatar_url ? `${baseUrl}${profile.avatar_url}` : "/dragon.svg";
+  const contribData = buildContributionGrid(contributions, githubYear);
+  const totalContrib = contributions.reduce((acc, item) => acc + (item.count || 0), 0);
+  const availableYears = Array.isArray(summary.available_years) && summary.available_years.length
+    ? summary.available_years.slice().sort((a, b) => b - a)
+    : [githubYear];
+
+  const normalizeGithubUrl = (value) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return "";
+    }
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      return trimmed;
+    }
+    const handle = trimmed.replace(/^@/, "");
+    return `https://github.com/${handle}`;
+  };
+
+  const syncGithub = () => {
+    const value = githubUrl.trim();
+    if (!value) {
+      window.alert("Please enter a GitHub username or profile URL.");
+      return;
+    }
+    const normalized = normalizeGithubUrl(value);
+    localStorage.setItem("ddc_github_url", normalized);
+    setSavedGithubUrl(normalized);
+    setSyncing(true);
+      apiPost(baseUrl, "/github/sync", { profile: value, year: githubYear }).then((res) => {
+        setSyncing(false);
+        if (!res.ok) {
+          window.alert(res.message || "Failed to sync GitHub data.");
+          return;
+        }
+        window.alert("GitHub data synced.");
+        refresh();
+      });
+  };
+
+  return (
+    <div className="grid">
+      <div className="card github-profile-card">
+        <img className="github-avatar" src={avatarUrl} alt="GitHub avatar" />
+        <div className="github-profile-info">
+          <div className="github-name">{profile.name || "Unknown Developer"}</div>
+          {profile.username ? <div className="github-handle">@{profile.username}</div> : null}
+          <div className="github-bio">{profile.bio || "No profile bio available."}</div>
+          <div className="github-meta">
+            <span>Repos: {repos.length}</span>
+            <span>Followers: {profile.followers ?? "-"}</span>
+            <span>Following: {profile.following ?? "-"}</span>
+            {profile.location ? <span>Location: {profile.location}</span> : null}
+          </div>
+          <div className="github-link-row">
+            <label>GitHub profile URL or username</label>
+            <div className="github-link-actions">
+              <input
+                value={githubUrl}
+                onChange={(event) => setGithubUrl(event.target.value)}
+                placeholder="https://github.com/username"
+              />
+              <div className="github-link-buttons">
+                <button onClick={syncGithub} disabled={syncing}>
+                  {syncing ? "Syncing..." : "Sync"}
+                </button>
+              </div>
+            </div>
+            {savedGithubUrl ? (
+              <a className="github-link" href={savedGithubUrl} target="_blank" rel="noreferrer">
+                {savedGithubUrl}
+              </a>
+            ) : (
+              <div className="muted">No link saved.</div>
+            )}
+          </div>
+          {summary.message ? <div className="muted">{summary.message}</div> : null}
+          {message ? <div className="error">{message}</div> : null}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="activity-header">
+          <div>
+            <h3 className="section-title section-title-lg">GitHub Contributions</h3>
+            <div className="muted">Calendar year view (Jan - Dec)</div>
+            <div className="muted">Total contributions: {totalContrib}</div>
+          </div>
+          <div className="year-picker">
+            <label>Year</label>
+            <select
+              value={githubYear}
+              onChange={(event) => setGithubYear(Number(event.target.value))}
+            >
+              {availableYears.map((value) => (
+                <option key={value} value={value}>{value}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="heatmap-center">
+          <div className="heatmap-range">
+            <span>january</span>
+            <span className="heatmap-range-line" />
+            <span>december</span>
+          </div>
+          <div className="heatmap-frame">
+            <div
+              className="heatmap-months"
+              style={{ gridTemplateColumns: `repeat(${contribData.weeks}, var(--heatmap-cell))` }}
+            >
+              {contribData.monthLabels.map((label, idx) => (
+                <div key={idx}>{label}</div>
+              ))}
+            </div>
+            <div
+              className="heatmap-grid"
+              style={{
+                gridTemplateColumns: `repeat(${contribData.weeks}, var(--heatmap-cell))`,
+                gridTemplateRows: "repeat(7, var(--heatmap-cell))"
+              }}
+            >
+              {contribData.cells.map((cell, idx) => (
+                <div
+                  key={idx}
+                  className="heatmap-cell"
+                  title={cell.title}
+                  style={{ background: cell.color }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="heatmap-legend">
+          <span>Less</span>
+          {[CONTRIB_EMPTY, ...CONTRIB_COLORS].map((color) => (
+            <span key={color} className="legend-swatch" style={{ background: color }} />
+          ))}
+          <span>More</span>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="activity-header">
+          <div>
+            <h3 className="section-title section-title-lg">Repositories</h3>
+            <div className="muted">Snapshot from local data file.</div>
+          </div>
+        </div>
+        <div className="github-repo-list">
+          {repos.length ? (
+            repos.map((repo, idx) => {
+              const stars = repo.stars ?? repo.stargazers_count ?? 0;
+              const repoName = repo.name || "Unnamed repo";
+              const repoUrl = repo.html_url
+                || (profile.username && repo.name
+                  ? `https://github.com/${profile.username}/${repo.name}`
+                  : "");
+              const updatedText = repo.updated_at ? formatRepoUpdated(repo.updated_at) : "";
+              return (
+                <div className="repo-card" key={`${repo.name || "repo"}-${idx}`}>
+                  <div className="repo-title">
+                    {repoUrl ? (
+                      <a href={repoUrl} target="_blank" rel="noreferrer">
+                        {repoName}
+                      </a>
+                    ) : (
+                      repoName
+                    )}
+                  </div>
+                  <div className="repo-desc">{repo.description || "No description."}</div>
+                  <div className="repo-meta">
+                    {repo.language ? <span className="repo-chip">{repo.language}</span> : null}
+                    <span className="repo-chip">Stars: {stars}</span>
+                    {updatedText ? <span className="repo-chip">Updated: {updatedText}</span> : null}
+                    {repo.private ? <span className="repo-chip">Private</span> : null}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="muted">No repositories found.</div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -571,7 +737,8 @@ function GitPanel({ baseUrl }) {
 }
 
 function VscodePanel({ baseUrl }) {
-  const heatmapDays = 365;
+  const [heatmapYear, setHeatmapYear] = useState(new Date().getFullYear());
+  const [availableYears, setAvailableYears] = useState([]);
   const [heatmap, setHeatmap] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -579,21 +746,34 @@ function VscodePanel({ baseUrl }) {
   const [message, setMessage] = useState("");
 
   const refreshHeatmap = () => {
-    apiGet(baseUrl, `/vscode/heatmap?days=${heatmapDays}`).then((res) => {
+    apiGet(baseUrl, `/vscode/heatmap?year=${heatmapYear}`).then((res) => {
       if (!res.ok) {
-        setMessage(res.message || "Gagal memuat heatmap.");
+        setMessage(res.message || "Failed to load heatmap.");
         return;
       }
-      const items = res.data.items || [];
+      const data = res.data || {};
+      const items = data.items || [];
+      const years = Array.isArray(data.available_years) ? data.available_years : [];
+      const sortedYears = years.length ? years.slice().sort((a, b) => b - a) : [];
+      const displayYear = Number.isInteger(data.year) ? data.year : heatmapYear;
+      if (sortedYears.length && !sortedYears.includes(displayYear)) {
+        const fallbackYear = sortedYears[0];
+        if (fallbackYear !== heatmapYear) {
+          setAvailableYears(sortedYears);
+          setHeatmapYear(fallbackYear);
+          return;
+        }
+      }
       setHeatmap(items);
+      setAvailableYears(sortedYears);
       setMessage("");
+      const defaultDate = defaultHeatmapDate(displayYear);
       setSelectedDate((prev) => {
         if (!items.length) {
-          return prev;
+          return prev || defaultDate;
         }
-        const last = items[items.length - 1].date;
         if (!prev || !items.some((item) => item.date === prev)) {
-          return last;
+          return defaultDate;
         }
         return prev;
       });
@@ -606,7 +786,7 @@ function VscodePanel({ baseUrl }) {
     }
     apiGet(baseUrl, `/vscode/timeline?date=${dateValue}&bucket_minutes=${bucketMinutes}`).then((res) => {
       if (!res.ok) {
-        setMessage(res.message || "Gagal memuat timeline.");
+        setMessage(res.message || "Failed to load timeline.");
         return;
       }
       setTimeline(res.data.items || []);
@@ -615,67 +795,109 @@ function VscodePanel({ baseUrl }) {
 
   useEffect(() => {
     refreshHeatmap();
-  }, [heatmapDays]);
+  }, [heatmapYear]);
 
   useEffect(() => {
     refreshTimeline(selectedDate);
   }, [selectedDate, bucketMinutes]);
 
-  const heatmapData = buildHeatmapGrid(heatmap, heatmapDays);
+  const heatmapData = buildHeatmapGrid(heatmap, heatmapYear);
   const timelineData = buildTimelineGrid(timeline, bucketMinutes);
-  const yearLabel = selectedDate ? selectedDate.slice(0, 4) : String(heatmapData.year || new Date().getFullYear());
-  const rangeStartLabel = heatmapData.rangeStartLabel || "januari";
-  const rangeEndLabel = heatmapData.rangeEndLabel || "desember";
+  const rangeStartLabel = heatmapData.rangeStartLabel || "january";
+  const rangeEndLabel = heatmapData.rangeEndLabel || "december";
+  const yearOptions = availableYears.length ? availableYears : [heatmapYear];
+  const totals = heatmap.reduce(
+    (acc, item) => {
+      acc.typing += item.typing || 0;
+      acc.active += item.active || 0;
+      acc.inactive += item.inactive || 0;
+      return acc;
+    },
+    { typing: 0, active: 0, inactive: 0 }
+  );
+  const totalEvents = totals.typing + totals.active + totals.inactive;
+  const typingPercent = totalEvents ? Math.round((totals.typing / totalEvents) * 100) : 0;
+  const idlePercent = totalEvents ? Math.round((totals.inactive / totalEvents) * 100) : 0;
 
   return (
     <div className="grid">
       <div className="card activity-heatmap-card">
         <div className="activity-header">
           <div>
-            <h3 className="section-title">Activity Heatmap</h3>
-            <div className="muted">Satu tahun terakhir</div>
+            <h3 className="section-title section-title-xl">VS Code Activity</h3>
+            <div className="activity-subtitle">
+              Typing {typingPercent}% | Idle {idlePercent}%
+            </div>
+            <div className="muted">Calendar year view (Jan - Dec)</div>
           </div>
-          <div className="year-pill">{yearLabel}</div>
+          <div className="year-picker">
+            <label>Year</label>
+            <select
+              value={heatmapYear}
+              onChange={(event) => setHeatmapYear(Number(event.target.value))}
+            >
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="actions">
-          <button onClick={refreshHeatmap}>Refresh</button>
+        <div className="actions activity-actions">
+          <button className="icon-button" onClick={refreshHeatmap} aria-label="Refresh">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path d="M20 5v5h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
           {message && <div className="error">{message}</div>}
         </div>
-        <div className="heatmap-range">
-          <span>{rangeStartLabel}</span>
-          <span className="heatmap-range-line" />
-          <span>{rangeEndLabel}</span>
-        </div>
-        <div className="heatmap-frame">
-          <div
-            className="heatmap-months"
-            style={{ gridTemplateColumns: `repeat(${heatmapData.weeks}, var(--heatmap-cell))` }}
-          >
-            {heatmapData.monthLabels.map((label, idx) => (
-              <div key={idx}>{label}</div>
-            ))}
+        <div className="heatmap-center">
+          <div className="heatmap-range">
+            <span>{rangeStartLabel}</span>
+            <span className="heatmap-range-line" />
+            <span>{rangeEndLabel}</span>
           </div>
-          <div
-            className="heatmap-grid"
-            style={{
-              gridTemplateColumns: `repeat(${heatmapData.weeks}, var(--heatmap-cell))`,
-              gridTemplateRows: "repeat(7, var(--heatmap-cell))"
-            }}
-          >
-            {heatmapData.cells.map((cell, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className={`heatmap-cell ${cell.date === selectedDate ? "selected" : ""}`}
-                title={cell.title}
-                style={{ background: cell.color, cursor: cell.date ? "pointer" : "default" }}
-                onClick={() => {
-                  if (cell.date) {
-                    setSelectedDate(cell.date);
-                  }
-                }}
-              />
-            ))}
+          <div className="heatmap-frame">
+            <div
+              className="heatmap-months"
+              style={{ gridTemplateColumns: `repeat(${heatmapData.weeks}, var(--heatmap-cell))` }}
+            >
+              {heatmapData.monthLabels.map((label, idx) => (
+                <div key={idx}>{label}</div>
+              ))}
+            </div>
+            <div
+              className="heatmap-quarters"
+              style={{ gridTemplateColumns: `repeat(${heatmapData.weeks}, var(--heatmap-cell))` }}
+            >
+              {heatmapData.quarterCells.map((label, idx) => (
+                <div key={idx} className="heatmap-quarter">
+                  {label ? <span className="heatmap-quarter-dot" title={label} /> : null}
+                </div>
+              ))}
+            </div>
+            <div
+              className="heatmap-grid"
+              style={{
+                gridTemplateColumns: `repeat(${heatmapData.weeks}, var(--heatmap-cell))`,
+                gridTemplateRows: "repeat(7, var(--heatmap-cell))"
+              }}
+            >
+              {heatmapData.cells.map((cell, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className={`heatmap-cell ${cell.date === selectedDate ? "selected" : ""}`}
+                  title={cell.title}
+                  style={{ background: cell.color, cursor: cell.date ? "pointer" : "default" }}
+                  onClick={() => {
+                    if (cell.date) {
+                      setSelectedDate(cell.date);
+                    }
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </div>
         <div className="heatmap-legend">
@@ -700,21 +922,21 @@ function VscodePanel({ baseUrl }) {
       <div className="card soft activity-timeline-card">
         <div className="activity-header">
           <div>
-            <h3 className="section-title">Detail Timeline</h3>
-            <div className="muted">Klik tanggal di heatmap untuk detail waktu.</div>
+            <h3 className="section-title section-title-lg">Daily Timeline</h3>
+            <div className="muted">Pick a date above to see activity by time range.</div>
           </div>
         </div>
         <div className="grid">
           <div className="timeline-controls">
             <div>
-              <label>Tanggal terpilih</label>
+              <label>Selected date</label>
               <input value={selectedDate || ""} readOnly />
             </div>
             <div>
-              <label>Bucket (menit)</label>
+              <label>Bucket (minutes)</label>
               <select value={bucketMinutes} onChange={(e) => setBucketMinutes(Number(e.target.value))}>
                 {[5, 10, 15, 30, 60].map((bucket) => (
-                  <option key={bucket} value={bucket}>{bucket} menit</option>
+                  <option key={bucket} value={bucket}>{bucket} min</option>
                 ))}
               </select>
             </div>
@@ -762,13 +984,6 @@ function VscodePanel({ baseUrl }) {
   );
 }
 
-function formatList(items) {
-  if (!items || items.length === 0) {
-    return "-";
-  }
-  return items.map((item) => `- ${item}`).join("\n");
-}
-
 function formatStat(stat) {
   return `${stat.total_focus_minutes.toFixed(1)} min / ${stat.total_sessions} sessions`;
 }
@@ -780,23 +995,95 @@ function formatDateKey(date) {
   return `${year}-${month}-${day}`;
 }
 
+function formatRepoUpdated(value) {
+  if (!value) {
+    return "";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+  return date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+}
+
+function defaultHeatmapDate(year) {
+  const now = new Date();
+  if (year === now.getFullYear()) {
+    return formatDateKey(now);
+  }
+  return `${year}-12-31`;
+}
+
 const INACTIVE_COLOR = "#0f141d";
 const ACTIVE_COLORS = ["#12351f", "#1f5b2f", "#2f8740", "#3eb75a"];
 const TYPING_COLORS = ["#1b2b45", "#1f4f7a", "#2f7ec2", "#46b2ff"];
+const CONTRIB_EMPTY = "#0f141d";
+const CONTRIB_COLORS = ["#0e4429", "#006d32", "#26a641", "#39d353"];
 
-function buildHeatmapGrid(items, days) {
+function buildContributionGrid(items, year) {
+  const map = new Map();
+  items.forEach((item) => {
+    if (item && item.date) {
+      map.set(item.date, item.count || 0);
+    }
+  });
+
+  const start = new Date(year, 0, 1);
+  const end = new Date(year, 11, 31);
+  start.setHours(12, 0, 0, 0);
+  end.setHours(12, 0, 0, 0);
+  const totalDays = Math.round((end - start) / (24 * 60 * 60 * 1000)) + 1;
+  const weeks = Math.ceil(totalDays / 7);
+  const maxCount = Math.max(0, ...items.map((i) => i.count || 0));
+
+  const cells = [];
+  for (let i = 0; i < totalDays; i += 1) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    const key = formatDateKey(date);
+    const count = map.get(key) || 0;
+    const color = pickContributionColor(count, maxCount);
+    cells.push({
+      color,
+      title: `${key} | contributions: ${count}`
+    });
+  }
+
+  const monthLabels = Array.from({ length: weeks }, () => "");
+  for (let month = 0; month < 12; month += 1) {
+    const monthDate = new Date(year, month, 1);
+    monthDate.setHours(12, 0, 0, 0);
+    const dayIndex = Math.round((monthDate - start) / (24 * 60 * 60 * 1000));
+    const weekIndex = Math.floor(dayIndex / 7);
+    if (weekIndex >= 0 && weekIndex < weeks) {
+      monthLabels[weekIndex] = monthDate.toLocaleString("en-US", { month: "short" }).toLowerCase();
+    }
+  }
+
+  return { cells, weeks, monthLabels, year };
+}
+
+function buildHeatmapGrid(items, year) {
   const map = new Map();
   items.forEach((item) => {
     map.set(item.date, item);
   });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const start = new Date(today);
-  start.setDate(start.getDate() - (days - 1));
+  const start = new Date(year, 0, 1);
+  const end = new Date(year, 11, 31);
+  start.setHours(12, 0, 0, 0);
+  end.setHours(12, 0, 0, 0);
+  const totalDays = Math.round((end - start) / (24 * 60 * 60 * 1000)) + 1;
 
-  const startWeekday = (start.getDay() + 6) % 7;
-  const totalCells = startWeekday + days;
+  const startWeekday = 0;
+  const totalCells = totalDays;
   const weeks = Math.ceil(totalCells / 7);
 
   const maxTyping = Math.max(0, ...items.map((i) => i.typing || 0));
@@ -804,10 +1091,6 @@ function buildHeatmapGrid(items, days) {
 
   const cells = [];
   for (let i = 0; i < totalCells; i += 1) {
-    if (i < startWeekday) {
-      cells.push({ color: "transparent", title: "" });
-      continue;
-    }
     const dayIndex = i - startWeekday;
     const date = new Date(start);
     date.setDate(start.getDate() + dayIndex);
@@ -818,24 +1101,43 @@ function buildHeatmapGrid(items, days) {
     cells.push({ color, title, date: key });
   }
 
-  const monthLabels = [];
-  for (let w = 0; w < weeks; w += 1) {
-    const dayOffset = w * 7 - startWeekday;
-    const date = new Date(start);
-    date.setDate(start.getDate() + Math.max(0, dayOffset));
-    monthLabels.push(
-      date.getDate() === 1 ? date.toLocaleString("id-ID", { month: "short" }).toLowerCase() : ""
-    );
+  const monthLabels = Array.from({ length: weeks }, () => "");
+  for (let month = 0; month < 12; month += 1) {
+    const monthDate = new Date(year, month, 1);
+    monthDate.setHours(12, 0, 0, 0);
+    const dayIndex = Math.round((monthDate - start) / (24 * 60 * 60 * 1000));
+    const weekIndex = Math.floor(dayIndex / 7);
+    if (weekIndex >= 0 && weekIndex < weeks) {
+      monthLabels[weekIndex] = monthDate.toLocaleString("en-US", { month: "short" }).toLowerCase();
+    }
   }
 
-  const rangeStartLabel = start.toLocaleString("id-ID", { month: "long" }).toLowerCase();
-  const rangeEndLabel = today.toLocaleString("id-ID", { month: "long" }).toLowerCase();
+  const quarterCells = Array.from({ length: weeks }, () => "");
+  const quarterMarkers = [
+    { month: 2, label: "mar" },
+    { month: 5, label: "jun" },
+    { month: 8, label: "sep" },
+    { month: 11, label: "dec" }
+  ];
+  quarterMarkers.forEach((marker) => {
+    const markerDate = new Date(year, marker.month, 1);
+    markerDate.setHours(12, 0, 0, 0);
+    const dayIndex = Math.round((markerDate - start) / (24 * 60 * 60 * 1000));
+    const weekIndex = Math.floor(dayIndex / 7);
+    if (weekIndex >= 0 && weekIndex < weeks) {
+      quarterCells[weekIndex] = marker.label;
+    }
+  });
+
+  const rangeStartLabel = "january";
+  const rangeEndLabel = "december";
 
   return {
     cells,
     weeks,
     monthLabels,
-    year: today.getFullYear(),
+    quarterCells,
+    year,
     rangeStartLabel,
     rangeEndLabel
   };
@@ -894,6 +1196,13 @@ function pickHeatColor(typing, active, maxTyping, maxActive) {
     return scaleColor(active, maxActive, ACTIVE_COLORS);
   }
   return INACTIVE_COLOR;
+}
+
+function pickContributionColor(count, maxCount) {
+  if (count <= 0) {
+    return CONTRIB_EMPTY;
+  }
+  return scaleColor(count, maxCount, CONTRIB_COLORS);
 }
 
 function scaleColor(value, max, colors) {

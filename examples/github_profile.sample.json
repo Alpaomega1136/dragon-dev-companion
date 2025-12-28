@@ -1,0 +1,38 @@
+{
+  "profile": {
+    "name": "Raymond Jonathan",
+    "username": "raymond",
+    "bio": "Local-first developer. Dragon Dev Companion builder.",
+    "location": "Jakarta, ID",
+    "avatar_file": "github_avatar.png",
+    "followers": 123,
+    "following": 45
+  },
+  "repos": [
+    {
+      "name": "dragon-dev-companion",
+      "description": "Offline-first developer companion with focus and tasks.",
+      "stars": 42,
+      "language": "Python",
+      "updated_at": "2025-12-28",
+      "private": false
+    },
+    {
+      "name": "dragon-notes",
+      "description": "Personal note system with quick capture.",
+      "stars": 12,
+      "language": "TypeScript",
+      "updated_at": "2025-11-11",
+      "private": false
+    }
+  ],
+  "contributions": [
+    { "date": "2025-01-02", "count": 3 },
+    { "date": "2025-01-05", "count": 7 },
+    { "date": "2025-02-14", "count": 2 },
+    { "date": "2025-03-03", "count": 5 },
+    { "date": "2025-06-18", "count": 9 },
+    { "date": "2025-09-22", "count": 4 },
+    { "date": "2025-12-02", "count": 6 }
+  ]
+}

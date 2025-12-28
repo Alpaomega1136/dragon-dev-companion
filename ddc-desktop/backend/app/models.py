@@ -58,12 +58,6 @@ class TaskOut(BaseModel):
     updated_at: str
 
 
-class StandupSummary(BaseModel):
-    today_did: list[str]
-    today_will_do: list[str]
-    blockers: list[str]
-
-
 class ReadmeProfileRequest(BaseModel):
     name: str
     bio: str
@@ -103,3 +97,8 @@ class GitSummaryResponse(BaseModel):
 class VscodeEventRequest(BaseModel):
     event_type: Literal["active", "inactive", "typing"]
     details: str | None = None
+
+
+class GitHubSyncRequest(BaseModel):
+    profile: str
+    year: int | None = None

@@ -187,12 +187,15 @@ label {
 }
 
 .dragon-mark {
-  width: 120px;
-  height: 120px;
-  border-radius: 16px;
-  border: 1px solid #1f2c42;
-  background: radial-gradient(circle at top, #0f2848, #0a0f18);
-  padding: 12px;
+  width: 96px;
+  height: 96px;
+  border-radius: 18px;
+  border: 1px solid #24324a;
+  background: radial-gradient(circle at top, #12243f, #0a101b);
+  padding: 10px;
+  box-shadow: 0 16px 28px rgba(6, 14, 28, 0.45);
+  object-fit: contain;
+  display: block;
 }
 
 .status-card {
@@ -231,6 +234,185 @@ label {
   font-size: 18px;
 }
 
+.section-title-xl {
+  font-size: 22px;
+}
+
+.section-title-lg {
+  font-size: 19px;
+}
+
+.activity-subtitle {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.activity-header {
+  margin-bottom: 16px;
+}
+
+.activity-actions {
+  margin-bottom: 12px;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+.icon-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.github-profile-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.github-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #0f141d;
+  object-fit: cover;
+}
+
+.github-profile-info {
+  flex: 1;
+  min-width: 240px;
+  display: grid;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.github-name {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.github-handle {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.github-bio {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.github-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.github-link-row {
+  display: grid;
+  gap: 8px;
+}
+
+.github-link-row label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.github-link-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.github-link-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.year-picker {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.year-picker select {
+  padding: 6px 10px;
+  min-width: 90px;
+}
+
+.github-link {
+  color: var(--accent-2);
+  font-size: 13px;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.github-repo-list {
+  display: grid;
+  gap: 12px;
+}
+
+.repo-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.repo-title {
+  font-weight: 600;
+}
+
+.repo-title a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+.repo-title a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.repo-desc {
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.repo-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.repo-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #233047;
+  background: #121a28;
+  line-height: 1;
+  white-space: nowrap;
+}
 .activity-header {
   display: flex;
   align-items: center;
@@ -258,6 +440,15 @@ label {
   color: var(--muted);
   text-transform: lowercase;
   margin-bottom: 6px;
+  width: 100%;
+}
+
+.heatmap-center {
+  display: grid;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .heatmap-range-line {
@@ -275,14 +466,48 @@ label {
   border-radius: 18px;
   border: 1px solid var(--border);
   background: #0d121b;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .heatmap-months {
   display: grid;
   gap: 4px;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--muted);
   align-items: center;
+  text-transform: lowercase;
+  justify-content: center;
+  line-height: 1;
+  letter-spacing: 0.4px;
+}
+
+.heatmap-quarters {
+  display: grid;
+  gap: 4px;
+  height: 10px;
+  justify-content: center;
+}
+
+.heatmap-quarter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  font-size: 10px;
+  color: var(--muted);
+  height: 10px;
+}
+
+.heatmap-quarter-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #2c3a52;
+}
+
+.heatmap-quarter-label {
   text-transform: lowercase;
 }
 
@@ -290,6 +515,7 @@ label {
   display: grid;
   grid-auto-flow: column;
   gap: 4px;
+  justify-content: center;
 }
 
 .heatmap-cell {
@@ -297,6 +523,13 @@ label {
   height: var(--heatmap-cell);
   border-radius: 4px;
   border: 1px solid #1e2634;
+  padding: 0;
+  min-width: var(--heatmap-cell);
+  min-height: var(--heatmap-cell);
+  line-height: 1;
+  font-size: 0;
+  display: block;
+  appearance: none;
 }
 
 .heatmap-cell.selected {

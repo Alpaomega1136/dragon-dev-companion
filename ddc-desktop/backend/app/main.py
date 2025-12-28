@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.db import init_db
 from app.models import (
     GitSummaryRequest,
+    GitHubSyncRequest,
     PomodoroStart,
     ReadmeProfileRequest,
     ReadmeProjectRequest,
@@ -16,6 +18,7 @@ from app.models import (
     VscodeEventRequest,
 )
 from app.services import (
+    github_service,
     git_service,
     pomodoro_service,
     readme_service,
@@ -119,11 +122,6 @@ def tasks_delete(task_id: int) -> dict:
     return {"ok": True, "data": result}
 
 
-@app.get("/standup/today")
-def standup_today() -> dict:
-    return {"ok": True, "data": task_service.standup_today()}
-
-
 @app.post("/readme/profile")
 def readme_profile(payload: ReadmeProfileRequest) -> dict:
     return {"ok": True, "data": readme_service.generate_profile(payload.model_dump())}
@@ -142,6 +140,27 @@ def readme_history() -> dict:
 @app.post("/git/summary")
 def git_summary(payload: GitSummaryRequest) -> dict:
     return {"ok": True, "data": git_service.summary(payload.repo_path)}
+
+
+@app.get("/github/summary")
+def github_summary(year: int | None = Query(None, ge=2000, le=2100)) -> dict:
+    return {"ok": True, "data": github_service.summary(year)}
+
+
+@app.post("/github/sync")
+def github_sync(payload: GitHubSyncRequest) -> dict:
+    result = github_service.sync(payload.profile, payload.year)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return {"ok": True, "data": result}
+
+
+@app.get("/github/avatar")
+def github_avatar(file: str = Query(...)) -> FileResponse:
+    path = github_service.avatar_path(file)
+    if not path:
+        raise HTTPException(status_code=404, detail="Avatar not found.")
+    return FileResponse(path)
 
 
 @app.post("/vscode/event")
@@ -163,8 +182,15 @@ def vscode_history(window_hours: int = Query(24, ge=1, le=24), limit: int = Quer
 
 
 @app.get("/vscode/heatmap")
-def vscode_heatmap(days: int = Query(90, ge=7, le=365)) -> dict:
-    return {"ok": True, "data": vscode_service.heatmap(days)}
+def vscode_heatmap(
+    days: int | None = Query(None, ge=7, le=365),
+    year: int | None = Query(None, ge=2000, le=2100),
+) -> dict:
+    if year is not None:
+        data = vscode_service.heatmap(year=year)
+    else:
+        data = vscode_service.heatmap(days=days or 90)
+    return {"ok": True, "data": data}
 
 
 @app.get("/vscode/timeline")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from app.db import get_connection
 from app.utils.time_utils import now_iso
@@ -108,7 +108,52 @@ def history(window_hours: int, limit: int = 50) -> list[dict]:
     return [dict(row) for row in rows]
 
 
-def heatmap(days: int) -> dict:
+def heatmap(days: int | None = None, year: int | None = None) -> dict:
+    years = available_years()
+    if year is not None:
+        start_date = date(year, 1, 1)
+        end_date = date(year, 12, 31)
+        start_str = start_date.isoformat()
+        end_str = end_date.isoformat()
+
+        with get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT date(created_at) AS day, event_type, COUNT(*) AS total
+                FROM vscode_activity
+                WHERE date(created_at) BETWEEN ? AND ?
+                GROUP BY day, event_type
+                ORDER BY day ASC
+                """,
+                (start_str, end_str),
+            ).fetchall()
+
+        counts: dict[str, dict[str, int]] = {}
+        for row in rows:
+            day = row["day"]
+            if day not in counts:
+                counts[day] = {"active": 0, "typing": 0, "inactive": 0}
+            counts[day][row["event_type"]] = int(row["total"])
+
+        items: list[dict] = []
+        cursor = start_date
+        while cursor <= end_date:
+            key = cursor.isoformat()
+            day_counts = counts.get(key, {"active": 0, "typing": 0, "inactive": 0})
+            items.append(
+                {
+                    "date": key,
+                    "active": day_counts["active"],
+                    "typing": day_counts["typing"],
+                    "inactive": day_counts["inactive"],
+                }
+            )
+            cursor += timedelta(days=1)
+
+        return {"year": year, "items": items, "available_years": years}
+
+    if days is None:
+        days = 90
     if days < 7:
         days = 7
     if days > 365:
@@ -152,7 +197,29 @@ def heatmap(days: int) -> dict:
         )
         cursor += timedelta(days=1)
 
-    return {"days": days, "items": items}
+    return {"days": days, "items": items, "available_years": years}
+
+
+def available_years() -> list[int]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT DISTINCT strftime('%Y', created_at) AS year
+            FROM vscode_activity
+            ORDER BY year ASC
+            """
+        ).fetchall()
+
+    years: list[int] = []
+    for row in rows:
+        value = row["year"]
+        if not value:
+            continue
+        try:
+            years.append(int(value))
+        except (TypeError, ValueError):
+            continue
+    return sorted(set(years))
 
 
 def timeline(date_str: str, bucket_minutes: int) -> dict:
