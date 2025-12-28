@@ -1,0 +1,44 @@
+{
+  "name": "ddc-vscode-activity",
+  "displayName": "DDC VS Code Activity",
+  "description": "Send VS Code activity (active/typing) to DDC Desktop backend.",
+  "version": "0.1.0",
+  "publisher": "ddc-local",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "DDC Desktop",
+      "properties": {
+        "ddcDesktop.backendUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:5123",
+          "description": "Backend URL for DDC Desktop."
+        },
+        "ddcDesktop.typingDebounceMs": {
+          "type": "number",
+          "default": 10000,
+          "description": "Minimum delay between typing events (ms)."
+        },
+        "ddcDesktop.activeHeartbeatSeconds": {
+          "type": "number",
+          "default": 60,
+          "description": "Heartbeat interval when VS Code is active (seconds)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -w -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.6.3"
+  }
+}

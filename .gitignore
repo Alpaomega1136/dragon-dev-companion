@@ -8,10 +8,17 @@ __pycache__/
 # DDC local data/output
 .ddc_data/
 out/
+ddc-desktop/data/
+ddc-desktop/out/
 
 # Tool caches
 .pip-cache/
 .tmp/
+
+# Node
+node_modules/
+dist/
+.vite/
 
 # OS files
 .DS_Store
