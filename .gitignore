@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+
+# DDC local data/output
+.ddc_data/
+out/
+
+# Tool caches
+.pip-cache/
+.tmp/
+
+# OS files
+.DS_Store
+Thumbs.db
