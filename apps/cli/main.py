@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from modules.focus_den.core import render_focus_stats, run_pomodoro
-from modules.project_roost.core import render_standup, render_tasks_table
+from modules.project_roost.core import render_tasks_table
 from modules.repo_forge.core import render_profile_readme, render_project_readme
 from packages.core.config import APP_NAME, OUT_DIR, ensure_dirs, resolve_within_project
 from packages.core.storage import DDCStorage
@@ -152,14 +152,6 @@ def tasks_done(task_id: int = typer.Argument(...)) -> None:
         console.print(Panel(f"Task {task_id} marked done.", title="Project Roost"))
     else:
         console.print(Panel(f"Task {task_id} not found or already done.", title="Project Roost"))
-
-
-@app.command()
-def standup() -> None:
-    """Daily standup view: tasks + deadlines + git summary."""
-    storage = DDCStorage()
-    storage.ensure_initialized()
-    render_standup(storage, console, Path.cwd())
 
 
 @app.command()

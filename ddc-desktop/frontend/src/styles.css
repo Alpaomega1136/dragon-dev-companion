@@ -27,6 +27,7 @@ body {
   padding: 28px 24px 60px;
   max-width: 1200px;
   margin: 0 auto;
+  padding-bottom: 160px;
 }
 
 header {
@@ -177,6 +178,22 @@ label {
   font-size: 12px;
 }
 
+.chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #111723;
+  font-size: 12px;
+  text-transform: capitalize;
+  color: var(--text);
+}
+
+.chip.active {
+  border-color: var(--accent);
+  color: var(--accent-2);
+  background: #121e32;
+}
+
 .error {
   color: var(--danger);
 }
@@ -221,6 +238,17 @@ label {
   background: #12273b;
   border-color: #2f7bd6;
   color: #8cc7ff;
+}
+
+.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent-2);
 }
 
 .badge.offline {
@@ -353,6 +381,342 @@ label {
 .year-picker select {
   padding: 6px 10px;
   min-width: 90px;
+}
+
+.spotify-card {
+  display: grid;
+  gap: 12px;
+}
+
+.spotify-form {
+  display: grid;
+  gap: 8px;
+}
+
+.spotify-account {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  background: #121a28;
+  border: 1px solid #233047;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.spotify-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #233047;
+  background: #0f141d;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.spotify-avatar.placeholder {
+  display: grid;
+  place-items: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.spotify-account-info {
+  display: grid;
+  gap: 4px;
+}
+
+.spotify-account-name {
+  font-weight: 600;
+}
+
+.spotify-account-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.spotify-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.spotify-link {
+  color: var(--accent-2);
+  font-size: 13px;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.spotify-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.spotify-dock {
+  position: fixed;
+  left: 24px;
+  right: 24px;
+  bottom: 18px;
+  max-width: 960px;
+  margin: 0 auto;
+  background: linear-gradient(150deg, #151d2c, #101623);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 10px;
+  box-shadow: 0 20px 40px rgba(6, 12, 24, 0.55);
+  z-index: 30;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.spotify-dock.hidden {
+  transform: translateY(140%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.spotify-dock-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.spotify-dock-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.spotify-dock-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.spotify-open {
+  color: var(--accent-2);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.spotify-open:hover {
+  color: var(--accent);
+}
+
+.spotify-dock iframe {
+  border: 0;
+  border-radius: 12px;
+}
+
+.spotify-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.spotify-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.spotify-library {
+  display: grid;
+  gap: 16px;
+}
+
+.spotify-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.spotify-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.spotify-scroll {
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.spotify-scroll-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  width: max-content;
+}
+
+.spotify-scroll-row .spotify-tile {
+  min-width: 200px;
+  max-width: 240px;
+}
+
+.spotify-playlists {
+  display: grid;
+  gap: 12px;
+}
+
+.spotify-playlist-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.spotify-playlist-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.spotify-playlist-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #f4f8ff;
+}
+
+.spotify-playlist-cover.placeholder {
+  border: 1px solid #233047;
+}
+
+.spotify-playlist-meta {
+  display: grid;
+  gap: 4px;
+}
+
+.spotify-playlist-title {
+  font-weight: 600;
+}
+
+.spotify-playlist-subtitle {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.spotify-playlist-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.spotify-tile {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.spotify-tile-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #f4f8ff;
+  text-transform: uppercase;
+}
+
+.spotify-tile-meta {
+  display: grid;
+  gap: 4px;
+}
+
+.spotify-tile-title {
+  font-weight: 600;
+}
+
+.spotify-tile-subtitle {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.spotify-tile-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.spotify-now {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-height: 320px;
+}
+
+.spotify-now-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #f4f8ff;
+  text-transform: uppercase;
+}
+
+.spotify-now-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.spotify-now-type {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.spotify-queue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.spotify-dock-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .spotify-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .spotify-account {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+
+  .spotify-account-actions {
+    justify-content: flex-start;
+  }
 }
 
 .github-link {
@@ -606,5 +970,221 @@ label {
 @media (max-width: 900px) {
   .split {
     grid-template-columns: 1fr;
+  }
+}
+
+.pomodoro-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.pomodoro-status-card {
+  display: grid;
+  grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.pomodoro-ring {
+  --ring-size: 220px;
+  width: var(--ring-size);
+  height: var(--ring-size);
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) var(--progress), #1a2230 0deg);
+  display: grid;
+  place-items: center;
+  position: relative;
+  box-shadow: 0 18px 28px rgba(6, 12, 24, 0.45);
+  border: 1px solid #1f2a3a;
+  margin: 0 auto;
+}
+
+.pomodoro-ring::after {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  background: #0f141d;
+  border: 1px solid var(--border);
+  box-shadow: inset 0 0 20px rgba(8, 12, 20, 0.75);
+}
+
+.pomodoro-ring.running {
+  animation: ringPulse 3s ease-in-out infinite;
+}
+
+.pomodoro-ring-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 6px;
+  place-items: center;
+  text-align: center;
+}
+
+.pomodoro-time {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.pomodoro-sub {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pomodoro-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.pomodoro-metric {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #101722;
+  border: 1px solid #1f2a3a;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pomodoro-metric strong {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.pomodoro-dragon {
+  grid-column: 1 / -1;
+  display: grid;
+  place-items: center;
+  position: relative;
+  margin-top: 8px;
+  padding: 16px 0;
+}
+
+.pomodoro-dragon img {
+  width: 160px;
+  height: auto;
+  filter: drop-shadow(0 18px 24px rgba(6, 12, 24, 0.6));
+  animation: dragonFloat 6s ease-in-out infinite;
+}
+
+.pomodoro-dragon.active img {
+  animation: dragonFloat 5s ease-in-out infinite;
+}
+
+.dragon-orb {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #8bd3ff 0%, #2fb1ff 70%);
+  box-shadow: 0 0 14px rgba(47, 177, 255, 0.7);
+  animation: orbOrbit 6s linear infinite;
+}
+
+.dragon-orb.orb-two {
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle, #b8ffef 0%, #4dd7b4 70%);
+  box-shadow: 0 0 12px rgba(77, 215, 180, 0.6);
+  animation-duration: 4.5s;
+  animation-direction: reverse;
+}
+
+.pomodoro-controls-card {
+  display: grid;
+  gap: 16px;
+}
+
+.pomodoro-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pomodoro-inputs {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.pomodoro-toggles {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #0f141d;
+  border: 1px solid #1e2838;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.toggle input {
+  width: auto;
+}
+
+.pomodoro-controls-card .actions {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+@keyframes ringPulse {
+  0%, 100% {
+    box-shadow: 0 16px 28px rgba(6, 12, 24, 0.45), 0 0 0 0 rgba(47, 177, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 20px 32px rgba(6, 12, 24, 0.55), 0 0 0 8px rgba(47, 177, 255, 0.08);
+  }
+}
+
+@keyframes dragonFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes orbOrbit {
+  0% {
+    transform: translate(-60px, -10px);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(60px, 6px);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-60px, -10px);
+    opacity: 0.6;
+  }
+}
+
+@media (max-width: 980px) {
+  .pomodoro-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pomodoro-status-card {
+    grid-template-columns: 1fr;
+  }
+
+  .pomodoro-ring {
+    --ring-size: 200px;
   }
 }

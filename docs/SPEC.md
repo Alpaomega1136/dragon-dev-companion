@@ -10,7 +10,7 @@ project-local SQLite database.
 - apps/tui: Optional Textual dashboard.
 - modules/focus_den: Pomodoro timer + focus stats.
 - modules/repo_forge: README/profile template rendering.
-- modules/project_roost: Task system + standup view.
+- modules/project_roost: Task system.
 - packages/core: shared config, storage, git helpers, time utilities.
 
 ## Storage

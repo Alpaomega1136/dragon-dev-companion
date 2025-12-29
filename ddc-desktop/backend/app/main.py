@@ -13,6 +13,8 @@ from app.models import (
     PomodoroStart,
     ReadmeProfileRequest,
     ReadmeProjectRequest,
+    SpotifyRefreshRequest,
+    SpotifyTokenRequest,
     TaskCreate,
     TaskUpdate,
     VscodeEventRequest,
@@ -22,6 +24,7 @@ from app.services import (
     git_service,
     pomodoro_service,
     readme_service,
+    spotify_service,
     task_service,
     vscode_service,
 )
@@ -135,6 +138,27 @@ def readme_project(payload: ReadmeProjectRequest) -> dict:
 @app.get("/readme/history")
 def readme_history() -> dict:
     return {"ok": True, "data": readme_service.history()}
+
+
+@app.post("/spotify/token")
+def spotify_token(payload: SpotifyTokenRequest) -> dict:
+    result = spotify_service.exchange_code(
+        payload.client_id,
+        payload.code,
+        payload.code_verifier,
+        payload.redirect_uri,
+    )
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return {"ok": True, "data": result}
+
+
+@app.post("/spotify/refresh")
+def spotify_refresh(payload: SpotifyRefreshRequest) -> dict:
+    result = spotify_service.refresh_token(payload.client_id, payload.refresh_token)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return {"ok": True, "data": result}
 
 
 @app.post("/git/summary")

@@ -1,88 +1,46 @@
 # Dragon Dev Companion (DDC)
 
-Dragon Dev Companion is a local-first, dragon-themed developer companion. It ships
-with a CLI and an optional TUI to help you stay focused, track tasks, and forge
-READMEs without leaving your terminal.
+Dragon Dev Companion is a local-first developer companion. The main experience is DDC Web
+(React + FastAPI) with an optional VS Code activity extension and a legacy CLI.
 
-## Features
-- Focus Den: Pomodoro timer, session logging, and stats.
-- Repo Forge: GitHub profile and project README generators.
-- Project Roost: Task system and deadlines.
-- DDC Web: Offline-first web app with Pomodoro, tasks, VS Code activity heatmap, GitHub viewer, and Git summary.
+## DDC Web (main app)
+- Pomodoro focus/break timer with stats.
+- Task manager (CRUD).
+- README generator (profile + project).
+- VS Code activity tracker + heatmap (requires extension).
+- GitHub profile + contributions viewer (offline cache or sync).
+- Git summary for local repos.
+- Spotify lounge (OAuth PKCE, playlists, player bar).
 
-## Install (local)
-```bash
+Data lives in `ddc-desktop/data/` (SQLite + JSON). README output goes to `ddc-desktop/out/`.
+
+## Quick start (Windows)
+```powershell
+cd ddc-desktop
+.\scripts\run.ps1
+```
+
+Launcher with VS Code extension install:
+```powershell
+cd ddc-desktop
+.\scripts\launch.cmd
+```
+
+Frontend: `http://127.0.0.1:5173`
+Backend: `http://127.0.0.1:5123`
+
+See `ddc-desktop/README.md` for full setup, extension steps, and Spotify OAuth notes.
+
+## CLI (optional)
+```powershell
 python -m venv .venv
-```
-
-Windows:
-```bash
-.venv\\Scripts\\activate
-```
-
-macOS/Linux:
-```bash
-source .venv/bin/activate
+.\.venv\Scripts\activate
 pip install -e .
-```
-
-## Quick Setup (Windows PowerShell)
-```powershell
-.\scripts\setup.ps1
-```
-This script creates the venv, installs dependencies, and sets up the CLI.
-
-## Smoke Test (Windows PowerShell)
-```powershell
-.\scripts\smoke.ps1
-```
-This script runs basic CLI commands and pytest.
-
-Optional TUI:
-```bash
-pip install -e .[tui]
-```
-
-## CLI Usage
-```bash
 ddc --help
-ddc init
-
-ddc focus start --minutes 25 --break 5 --cycles 4
-ddc focus stats
-
-ddc readme profile --style cute --name "Raymond Jonathan"
-ddc readme project --title "Dragon Tracker" --description "Track flight logs"
-
-ddc tasks add "Refactor focus timer" --due 2025-12-30
-ddc tasks list
-ddc tasks done 1
 ```
 
-## TUI
-```bash
-ddc tui
-```
+CLI data is stored in `.ddc_data/` and output in `out/`.
 
-## DDC Web
-The web app lives in `ddc-desktop/` (FastAPI backend + React frontend).
-See `ddc-desktop/README.md` for setup and run instructions.
-
-## Output Paths
-Generated files default to `out/` and must remain inside the project root.
-
-## Screenshots (Placeholder)
-```
-   / \  //\     Dragon Dev Companion
-  ( o_o )        [Focus] [Tasks] [Forge]
-   > ^ <         Stats, tasks, and forge views
-```
-
-## Roadmap
-- [ ] Expand focus analytics (monthly views).
-- [ ] Add task tags and filtering.
-- [ ] Improve TUI interactivity.
-- [ ] Add template customization flags.
-
-## License
-Add a license if you plan to distribute.
+## Notes
+- Spotify and GitHub sync require internet access.
+- Everything else is local-first and runs offline.

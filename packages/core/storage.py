@@ -188,18 +188,6 @@ class DDCStorage:
             conn.commit()
             return cur.rowcount > 0
 
-    def list_open_tasks_with_due(self) -> list[TaskItem]:
-        with self._connect() as conn:
-            cur = conn.execute(
-                """
-                SELECT * FROM tasks
-                WHERE status = 'open'
-                ORDER BY due_date IS NULL, due_date, created_ts
-                """
-            )
-            rows = cur.fetchall()
-        return [TaskItem(**dict(row)) for row in rows]
-
     def ensure_initialized(self) -> None:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         if not self.db_path.exists():

@@ -1,7 +1,7 @@
 # Dragon Dev Companion Web (DDC Web)
 
 Aplikasi web lokal bertema naga dengan backend FastAPI + SQLite dan frontend React (Vite).
-Fitur utama: Pomodoro, Task Manager, README Generator, VS Code Activity heatmap, GitHub profile viewer, dan Git summary.
+Fitur utama: Pomodoro, Task Manager, README Generator, VS Code Activity heatmap, GitHub profile viewer, Git summary, dan Spotify player (embed).
 Semua data disimpan lokal di `./data` dan output README ada di `./out`.
 
 ## Prasyarat
@@ -86,6 +86,8 @@ npm run dev
 - `POST /readme/profile`
 - `POST /readme/project`
 - `GET /readme/history`
+- `POST /spotify/token`
+- `POST /spotify/refresh`
 - `POST /git/summary`
 - `POST /vscode/event`
 - `GET /vscode/status?window_hours=1-24`
@@ -126,6 +128,23 @@ Jika ingin ambil data langsung dari GitHub:
 
 Catatan: fitur sync menggunakan jaringan internet dan dapat terkena limit GitHub (tanpa token).
 
+## Spotify (OAuth + Web API)
+DDC Web bisa terhubung ke akun Spotify untuk mengambil playlist dan melakukan shuffle track.
+
+Setup singkat:
+1. Buat aplikasi di https://developer.spotify.com/dashboard
+2. Tambahkan Redirect URI:
+   - `http://127.0.0.1:5173/`
+   - `http://localhost:5173/`
+3. Salin **Client ID** dan tempel di tab **Settings** -> Spotify Client ID.
+4. Buka tab **Spotify** lalu klik **Connect Spotify**.
+
+Catatan:
+- Spotify membutuhkan koneksi internet.
+- Playback tergantung akun (Premium memberi kontrol lebih).
+- Saat melakukan shuffle, DDC akan menyinkronkan seluruh track playlist dan menyimpannya lokal agar bisa diputar satu per satu.
+
 ## Troubleshooting
 - Jika frontend tidak bisa connect, pastikan backend berjalan di `http://127.0.0.1:5123`.
 - Jika `python` tidak terdeteksi, gunakan path Python/venv secara eksplisit.
+- Spotify player membutuhkan koneksi internet dan akun Spotify agar bisa memutar audio.

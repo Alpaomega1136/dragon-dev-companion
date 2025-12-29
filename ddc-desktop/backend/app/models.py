@@ -102,3 +102,15 @@ class VscodeEventRequest(BaseModel):
 class GitHubSyncRequest(BaseModel):
     profile: str
     year: int | None = None
+
+
+class SpotifyTokenRequest(BaseModel):
+    client_id: str
+    code: str
+    code_verifier: str
+    redirect_uri: str
+
+
+class SpotifyRefreshRequest(BaseModel):
+    client_id: str
+    refresh_token: str
