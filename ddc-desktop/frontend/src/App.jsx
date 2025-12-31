@@ -37,6 +37,7 @@ const SPOTIFY_TOKEN_BUFFER_MS = 60 * 1000;
 const SPOTIFY_PKCE_KEY = "ddc_spotify_pkce";
 const SPOTIFY_AUTH_KEY = "ddc_spotify_auth";
 const SPOTIFY_TRACKS_KEY = "ddc_spotify_tracks";
+const POMODORO_TASKS_KEY = "ddc_pomodoro_tasks";
 
 function loadSettings() {
   try {
@@ -121,6 +122,23 @@ function loadSpotifyTracks() {
 
 function saveSpotifyTracks(data) {
   localStorage.setItem(SPOTIFY_TRACKS_KEY, JSON.stringify(data));
+}
+
+function loadPomodoroTasks() {
+  try {
+    const raw = localStorage.getItem(POMODORO_TASKS_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePomodoroTasks(tasks) {
+  localStorage.setItem(POMODORO_TASKS_KEY, JSON.stringify(tasks));
 }
 
 function base64UrlEncode(buffer) {
@@ -735,7 +753,7 @@ export default function App() {
         ))}
       </div>
 
-      {tab === "Pomodoro" && <PomodoroPanel baseUrl={baseUrl} settings={settings} />}
+      {tab === "Pomodoro" && <PomodoroPanel settings={settings} />}
       {tab === "Tasks" && <TasksPanel baseUrl={baseUrl} />}
       {tab === "README" && <ReadmePanel baseUrl={baseUrl} />}
       {tab === "VS Code" && <VscodePanel baseUrl={baseUrl} />}
@@ -798,273 +816,219 @@ export default function App() {
   );
 }
 
-function PomodoroPanel({ baseUrl, settings }) {
+function PomodoroPanel({ settings }) {
+  const [focusMinutes, setFocusMinutes] = useState(settings.focusMinutes);
+  const [breakMinutes, setBreakMinutes] = useState(settings.breakMinutes);
   const [mode, setMode] = useState("focus");
-  const [duration, setDuration] = useState(settings.focusMinutes);
-  const [status, setStatus] = useState(null);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [autoStop, setAutoStop] = useState(true);
-  const [autoStartBreak, setAutoStartBreak] = useState(false);
-  const [autoStartFocus, setAutoStartFocus] = useState(false);
-  const [warnBeforeEnd, setWarnBeforeEnd] = useState(true);
-  const [warnedSession, setWarnedSession] = useState(null);
-  const [autoSessionId, setAutoSessionId] = useState(null);
-  const [nowTick, setNowTick] = useState(Date.now());
+  const [timeLeft, setTimeLeft] = useState(settings.focusMinutes * 60);
+  const [isRunning, setIsRunning] = useState(false);
+  const [stopPrompt, setStopPrompt] = useState(false);
+  const [repeatCycle, setRepeatCycle] = useState(true);
+  const [tasks, setTasks] = useState(() => loadPomodoroTasks());
+  const [newTask, setNewTask] = useState("");
 
   useEffect(() => {
-    setDuration(mode === "focus" ? settings.focusMinutes : settings.breakMinutes);
-  }, [mode, settings]);
+    setFocusMinutes(settings.focusMinutes);
+    setBreakMinutes(settings.breakMinutes);
+  }, [settings.focusMinutes, settings.breakMinutes]);
 
   useEffect(() => {
-    const timer = setInterval(() => setNowTick(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    savePomodoroTasks(tasks);
+  }, [tasks]);
 
-  const refresh = () => {
-    apiGet(baseUrl, "/pomodoro/status").then((res) => {
-      if (!res.ok) {
-        setError(res.message || "Gagal mengambil status.");
-        return;
-      }
-      setStatus(res.data);
-      setError("");
-    });
+  useEffect(() => {
+    if (isRunning) {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+    return undefined;
+  }, [isRunning]);
+
+  useEffect(() => {
+    if (!isRunning || timeLeft > 0) {
+      return;
+    }
+    if (repeatCycle) {
+      const nextMode = mode === "focus" ? "break" : "focus";
+      setMode(nextMode);
+      setTimeLeft((nextMode === "focus" ? focusMinutes : breakMinutes) * 60);
+      setIsRunning(true);
+    } else {
+      setIsRunning(false);
+      setStopPrompt(false);
+    }
+  }, [timeLeft, isRunning, repeatCycle, mode, focusMinutes, breakMinutes]);
+
+  useEffect(() => {
+    if (!isRunning && !stopPrompt) {
+      const base = mode === "focus" ? focusMinutes : breakMinutes;
+      setTimeLeft(base * 60);
+    }
+  }, [focusMinutes, breakMinutes, mode, isRunning, stopPrompt]);
+
+  const clampMinutes = (value, minValue) => Math.max(minValue, Math.round(value));
+  const adjustFocus = (delta) => {
+    setFocusMinutes((prev) => clampMinutes(prev + delta, 5));
+  };
+  const adjustBreak = (delta) => {
+    setBreakMinutes((prev) => clampMinutes(prev + delta, 5));
   };
 
-  const action = (path, body) => {
-    setError("");
-    setNotice("");
-    apiPost(baseUrl, path, body || {}).then((res) => {
-      if (!res.ok) {
-        setError(res.message || "Aksi gagal.");
-        return;
-      }
-      setNotice("Aksi berhasil.");
-      refresh();
-    });
+  const controlsHidden = isRunning || stopPrompt;
+  const startFocus = () => {
+    setMode("focus");
+    setTimeLeft(focusMinutes * 60);
+    setIsRunning(true);
+    setStopPrompt(false);
+  };
+  const stopSession = () => {
+    setIsRunning(false);
+    setStopPrompt(true);
+  };
+  const continueSession = () => {
+    setStopPrompt(false);
+    setIsRunning(true);
+  };
+  const endSession = () => {
+    setIsRunning(false);
+    setStopPrompt(false);
+    setMode("focus");
+    setTimeLeft(focusMinutes * 60);
   };
 
-  useEffect(refresh, []);
+  const totalSeconds = (mode === "focus" ? focusMinutes : breakMinutes) * 60;
+  const progress = totalSeconds > 0 ? (totalSeconds - timeLeft) / totalSeconds : 0;
+  const radius = 120;
+  const circumference = 2 * Math.PI * radius;
+  const strokeOffset = circumference * (1 - Math.min(1, Math.max(0, progress)));
+  const ringColor = mode === "focus" ? "#4da3ff" : "#38d98b";
 
-  const statusState = status || { status: "idle" };
-  const running = statusState.status === "running";
-  const paused = statusState.status === "paused";
-  const totalMinutes = Number(statusState.duration_minutes || duration || 0);
-  const baseElapsed = Number(statusState.elapsed_minutes || 0);
-  let elapsedMinutes = baseElapsed;
-  if (running && statusState.last_start_time) {
-    const lastStart = Date.parse(statusState.last_start_time);
-    if (!Number.isNaN(lastStart)) {
-      elapsedMinutes += (nowTick - lastStart) / 60000;
+  const addTask = (event) => {
+    event.preventDefault();
+    const value = newTask.trim();
+    if (!value) {
+      return;
     }
-  }
-  if (elapsedMinutes < 0) {
-    elapsedMinutes = 0;
-  }
-  const remainingMinutes = Math.max(0, totalMinutes - elapsedMinutes);
-  const progress = totalMinutes > 0 ? Math.min(1, elapsedMinutes / totalMinutes) : 0;
-  const remainingSeconds = Math.round(remainingMinutes * 60);
-  const elapsedSeconds = Math.round(elapsedMinutes * 60);
-  const endTime = running ? new Date(nowTick + remainingMinutes * 60000) : null;
-  const statusLabel = statusState.status || "idle";
-  const modeLabel = statusState.mode || mode;
-  const endLabel = endTime
-    ? endTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
-    : "-";
+    setTasks((prev) => [{ id: Date.now(), text: value, completed: false }, ...prev]);
+    setNewTask("");
+  };
 
-  useEffect(() => {
-    if (!warnBeforeEnd || !running) {
-      setWarnedSession(null);
-      return;
-    }
-    if (!statusState.id || warnedSession === statusState.id) {
-      return;
-    }
-    if (remainingMinutes <= 5 && remainingMinutes > 0) {
-      setNotice("Sisa waktu 5 menit.");
-      setWarnedSession(statusState.id);
-    }
-  }, [warnBeforeEnd, running, remainingMinutes, statusState.id, warnedSession]);
+  const toggleTask = (taskId) => {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task
+      )
+    );
+  };
 
-  useEffect(() => {
-    if (!running) {
-      setAutoSessionId(null);
-      return;
-    }
-    if (remainingMinutes > 0) {
-      return;
-    }
-    if (!statusState.id || autoSessionId === statusState.id) {
-      return;
-    }
-    if (!autoStop && !autoStartBreak && !autoStartFocus) {
-      return;
-    }
-    setAutoSessionId(statusState.id);
-    apiPost(baseUrl, "/pomodoro/stop", {}).then((res) => {
-      if (!res.ok) {
-        setError(res.message || "Auto stop gagal.");
-        return;
-      }
-      if (statusState.mode === "focus" && autoStartBreak) {
-        action("/pomodoro/start", { mode: "break", duration_minutes: settings.breakMinutes });
-      } else if (statusState.mode === "break" && autoStartFocus) {
-        action("/pomodoro/start", { mode: "focus", duration_minutes: settings.focusMinutes });
-      } else if (autoStop) {
-        setNotice("Sesi selesai.");
-        refresh();
-      }
-    });
-  }, [
-    running,
-    remainingMinutes,
-    statusState.id,
-    statusState.mode,
-    autoStop,
-    autoStartBreak,
-    autoStartFocus,
-    settings.breakMinutes,
-    settings.focusMinutes,
-    autoSessionId
-  ]);
-
-  const presets = [
-    { label: `Focus ${settings.focusMinutes}`, mode: "focus", minutes: settings.focusMinutes },
-    { label: "Focus 50", mode: "focus", minutes: 50 },
-    { label: "Focus 90", mode: "focus", minutes: 90 },
-    { label: `Break ${settings.breakMinutes}`, mode: "break", minutes: settings.breakMinutes },
-    { label: "Break 10", mode: "break", minutes: 10 }
-  ];
-
-  const applyPreset = (preset) => {
-    setMode(preset.mode);
-    setDuration(preset.minutes);
+  const removeTask = (taskId) => {
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
   };
 
   return (
     <div className="pomodoro-layout">
-      <div className="card pomodoro-status-card">
-        <div
-          className={`pomodoro-ring ${running ? "running" : ""}`}
-          style={{ "--progress": `${Math.round(progress * 360)}deg` }}
-        >
-          <div className="pomodoro-ring-inner">
-            <div className="pomodoro-time">{formatTimer(remainingSeconds)}</div>
-            <div className="pomodoro-sub">Remaining</div>
+      <div className="pomodoro-main card">
+        <div className="pomodoro-hero">
+          <div className="pomodoro-ring-wrap">
+            <svg className="pomodoro-ring-svg" viewBox="0 0 260 260">
+              <circle cx="130" cy="130" r={radius} className="pomodoro-ring-track" />
+              <circle
+                cx="130"
+                cy="130"
+                r={radius}
+                className="pomodoro-ring-progress"
+                stroke={ringColor}
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeOffset}
+              />
+            </svg>
+            <div className="pomodoro-center">
+              <div className="pomodoro-mode">{mode === "focus" ? "Focus" : "Break"}</div>
+              <div className="pomodoro-time">{formatTimer(timeLeft)}</div>
+            </div>
+          </div>
+
+          <div className="pomodoro-side">
+            <div className={`pomodoro-break-badge ${mode === "break" ? "active" : ""}`}>
+              <div className="pomodoro-break-time">{formatTimer(breakMinutes * 60)}</div>
+              <div className="pomodoro-break-label">Break</div>
+            </div>
+            {!controlsHidden ? (
+              <div className="pomodoro-break-actions">
+                <button onClick={() => adjustBreak(-1)}>-1:00</button>
+                <button onClick={() => adjustBreak(1)}>+1:00</button>
+              </div>
+            ) : null}
+            {!controlsHidden ? (
+              <label className="pomodoro-repeat">
+                <input
+                  type="checkbox"
+                  checked={repeatCycle}
+                  onChange={(event) => setRepeatCycle(event.target.checked)}
+                />
+                <span>Repeat</span>
+              </label>
+            ) : null}
           </div>
         </div>
-        <div className="pomodoro-metrics">
-          <div className="pomodoro-metric">
-            <span>Status</span>
-            <strong>{statusLabel}</strong>
+
+        {!controlsHidden ? (
+          <div className="pomodoro-focus-actions">
+            <button onClick={() => adjustFocus(-5)}>-5:00</button>
+            <button onClick={() => adjustFocus(5)}>+5:00</button>
           </div>
-          <div className="pomodoro-metric">
-            <span>Mode</span>
-            <strong>{modeLabel}</strong>
-          </div>
-          <div className="pomodoro-metric">
-            <span>Duration</span>
-            <strong>{totalMinutes || duration} min</strong>
-          </div>
-          <div className="pomodoro-metric">
-            <span>Elapsed</span>
-            <strong>{formatTimer(elapsedSeconds)}</strong>
-          </div>
-          <div className="pomodoro-metric">
-            <span>Ends at</span>
-            <strong>{endLabel}</strong>
-          </div>
-          <div className="pomodoro-metric">
-            <span>State</span>
-            <strong>{running ? "Running" : paused ? "Paused" : "Idle"}</strong>
-          </div>
+        ) : null}
+
+        <div className="pomodoro-main-actions">
+          {stopPrompt ? (
+            <>
+              <button className="primary" onClick={continueSession}>Continue</button>
+              <button className="ghost" onClick={endSession}>End</button>
+            </>
+          ) : isRunning ? (
+            <button className="danger" onClick={stopSession}>Stop</button>
+          ) : (
+            <button className="primary" onClick={startFocus}>Start</button>
+          )}
         </div>
-        <div className={`pomodoro-dragon ${running ? "active" : ""}`}>
-          <img src="/dragon.svg" alt="Dragon" />
-          <span className="dragon-orb" />
-          <span className="dragon-orb orb-two" />
-        </div>
-        {notice && <div className="muted">{notice}</div>}
-        {error && <div className="error">{error}</div>}
       </div>
 
-      <div className="card pomodoro-controls-card">
-        <div className="activity-header">
+      <aside className="pomodoro-sidebar">
+        <div className="pomodoro-sidebar-header">
           <div>
-            <h3 className="section-title section-title-lg">Pomodoro Settings</h3>
-            <div className="muted">Atur durasi, mode, dan automasi.</div>
-          </div>
-          <div className="pill">Focus / Break</div>
-        </div>
-
-        <div className="pomodoro-presets">
-          {presets.map((preset) => (
-            <button key={preset.label} onClick={() => applyPreset(preset)}>
-              {preset.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="pomodoro-inputs">
-          <div>
-            <label>Mode</label>
-            <select value={mode} onChange={(e) => setMode(e.target.value)}>
-              <option value="focus">Focus</option>
-              <option value="break">Break</option>
-            </select>
-          </div>
-          <div>
-            <label>Durasi (menit)</label>
-            <input
-              type="number"
-              value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
-            />
+            <div className="pomodoro-sidebar-title">Task List</div>
+            <div className="pomodoro-sidebar-subtitle">Local tasks for this session.</div>
           </div>
         </div>
-
-        <div className="pomodoro-toggles">
-          <label className="toggle">
-            <input type="checkbox" checked={autoStop} onChange={(e) => setAutoStop(e.target.checked)} />
-            <span>Auto stop saat selesai</span>
-          </label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={autoStartBreak}
-              onChange={(e) => setAutoStartBreak(e.target.checked)}
-            />
-            <span>Auto start break setelah focus</span>
-          </label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={autoStartFocus}
-              onChange={(e) => setAutoStartFocus(e.target.checked)}
-            />
-            <span>Auto start focus setelah break</span>
-          </label>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={warnBeforeEnd}
-              onChange={(e) => setWarnBeforeEnd(e.target.checked)}
-            />
-            <span>Peringatan 5 menit sebelum selesai</span>
-          </label>
+        <form className="pomodoro-task-form" onSubmit={addTask}>
+          <input
+            type="text"
+            placeholder="Add a task..."
+            value={newTask}
+            onChange={(event) => setNewTask(event.target.value)}
+          />
+          <button type="submit" className="primary">Add</button>
+        </form>
+        <div className="pomodoro-task-list">
+          {tasks.length ? (
+            tasks.map((task) => (
+              <div className={`pomodoro-task ${task.completed ? "completed" : ""}`} key={task.id}>
+                <button type="button" className="pomodoro-task-toggle" onClick={() => toggleTask(task.id)}>
+                  {task.completed ? "Done" : "Todo"}
+                </button>
+                <div className="pomodoro-task-text">{task.text}</div>
+                <button type="button" className="pomodoro-task-remove" onClick={() => removeTask(task.id)}>
+                  Remove
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="muted">No tasks yet. Add one to stay focused.</div>
+          )}
         </div>
-
-        <div className="actions">
-          <button className="primary" onClick={() => action("/pomodoro/start", { mode, duration_minutes: duration })}>
-            Start
-          </button>
-          <button onClick={() => action("/pomodoro/pause")}>Pause</button>
-          <button onClick={() => action("/pomodoro/resume")}>Resume</button>
-          <button onClick={() => action("/pomodoro/stop")}>Stop</button>
-          <button onClick={refresh}>Refresh</button>
-        </div>
-      </div>
+      </aside>
     </div>
   );
 }
